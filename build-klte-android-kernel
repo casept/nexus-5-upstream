@@ -48,6 +48,7 @@ set -e
 build_kernel()
 {
     export ARCH=arm
+    export CONFIG_FRAGMENTS=("android-base.config" "android-recommended-arm.config" "android-recommended.config")
     export PATH="${PATH}":"${KERNEL_SRC}"/scripts/dtc
 
     if [ "${CROSS_COMPILE}" = "" ] ; then
@@ -66,8 +67,8 @@ build_kernel()
     fi
 
     cd "${KERNEL_SRC}"
-    echo "Running 'make ${DEFCONFIG}'"
-    make "${DEFCONFIG}"
+    echo "Running 'make ${DEFCONFIG} ${CONFIG_FRAGMENTS[*]}'"
+    make "${DEFCONFIG}" ${CONFIG_FRAGMENTS[*]}
     make kernelrelease
 
     #HAS_DT_BINDING_CHECK=$(grep ^dt_binding_check: Makefile || true)
@@ -82,16 +83,19 @@ build_kernel()
     cat arch/arm/boot/zImage "${DTB}" > "${ZIMAGE_DTB}"
 }
 
+# TODO: Merge cmdlines as needed
+# This is the pmOS debug one
+#cmdline = console=tty0 console=${SERIAL_TTY},115200,n8 rootwait PMOS_NO_OUTPUT_REDIRECT
 generate_boot_cfg()
 {
     cat > "${BOOT_CFG}" << __EOF__
     pagesize = 0x800
     kerneladdr = 0x8000
-    ramdiskaddr = 0x2900000
+    ramdiskaddr = 0x2000000
     secondaddr = 0xf00000
     tagsaddr = 0x2700000
     name = 
-    cmdline = console=tty0 console=${SERIAL_TTY},115200,n8 rootwait PMOS_NO_OUTPUT_REDIRECT
+    cmdline = console=null androidboot.hardware=qcom user_debug=31 msm_rtb.filter=0x37 ehci-hcd.park=3 zcache
 __EOF__
 }
 
